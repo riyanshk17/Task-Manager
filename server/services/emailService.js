@@ -1,12 +1,19 @@
 import dotenv from 'dotenv';
 import nodemailer from 'nodemailer';
 import { Resend } from 'resend';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load .env from project root as well as server folder
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 dotenv.config();
 
 /**
  * Production Resend Email Service Implementation
- * Uses official Resend SDK. Reads process.env.RESEND_API_KEY & process.env.RESEND_FROM_EMAIL.
  */
 class ResendEmailService {
   async sendVerificationOtp({ toEmail, name, otpCode, type = 'signup' }) {
@@ -47,8 +54,7 @@ class ResendEmailService {
     });
 
     if (error) {
-      console.error('[Resend SDK Error]:', error);
-      throw new Error(`Resend Delivery Error: ${error.message}`);
+      throw new Error(`Resend Delivery Error: ${error.message || JSON.stringify(error)}`);
     }
 
     console.log(`[ResendEmailService] ✅ Email delivered to ${toEmail} via Resend SDK! (ID: ${data?.id})`);
@@ -57,37 +63,35 @@ class ResendEmailService {
 }
 
 /**
- * Console / Development Fallback Email Service
- * Logs formatted OTP verification codes to the server terminal console.
+ * Console & Nodemailer SMTP Service
+ * Sends real email if SMTP/Gmail credentials exist, otherwise logs OTP instantly to console.
  */
 class ConsoleEmailService {
-  constructor() {
-    this.transporter = null;
-    this.initTransporter();
-  }
+  getTransporter() {
+    const gmailUser = process.env.GMAIL_USER;
+    const gmailPass = process.env.GMAIL_APP_PASS;
+    const smtpHost = process.env.SMTP_HOST;
+    const smtpPort = process.env.SMTP_PORT || 587;
+    const smtpUser = process.env.SMTP_USER;
+    const smtpPass = process.env.SMTP_PASS;
 
-  async initTransporter() {
-    const user = process.env.GMAIL_USER || process.env.SMTP_USER;
-    const pass = process.env.GMAIL_APP_PASS || process.env.SMTP_PASS;
-
-    if (user && pass) {
-      this.transporter = nodemailer.createTransport({
+    if (gmailUser && gmailPass) {
+      return nodemailer.createTransport({
         service: 'gmail',
-        auth: { user, pass }
+        auth: { user: gmailUser, pass: gmailPass }
       });
-    } else {
-      try {
-        const testAccount = await nodemailer.createTestAccount();
-        this.transporter = nodemailer.createTransport({
-          host: 'smtp.ethereal.email',
-          port: 587,
-          secure: false,
-          auth: { user: testAccount.user, pass: testAccount.pass }
-        });
-      } catch (err) {
-        // Fallback silently if offline
-      }
     }
+
+    if (smtpHost && smtpUser && smtpPass) {
+      return nodemailer.createTransport({
+        host: smtpHost,
+        port: Number(smtpPort),
+        secure: Number(smtpPort) === 465,
+        auth: { user: smtpUser, pass: smtpPass }
+      });
+    }
+
+    return null;
   }
 
   async sendVerificationOtp({ toEmail, name, otpCode, type = 'signup' }) {
@@ -99,37 +103,36 @@ class ConsoleEmailService {
     console.log(`📌 PURPOSE: ${type.toUpperCase()}`);
     console.log('====================================================\n');
 
-    if (this.transporter) {
+    const transporter = this.getTransporter();
+    if (transporter) {
       try {
-        const subject = 'Verify your email address';
-        const info = await this.transporter.sendMail({
-          from: '"TaskMaster Pro" <no-reply@taskmasterpro.dev>',
+        const fromAddr = process.env.GMAIL_USER || process.env.SMTP_USER || '"TaskMaster Pro" <no-reply@taskmasterpro.dev>';
+        const info = await transporter.sendMail({
+          from: fromAddr,
           to: toEmail,
-          subject,
+          subject: 'Verify your email address - TaskMaster Pro',
           text: `Hello ${name || 'User'},\n\nYour 6-digit OTP code is: ${otpCode}\n\nExpires in 10 minutes.\n\nTaskMaster Pro`,
           html: `
-            <div style="font-family: Arial, sans-serif; padding: 20px; background: #0f172a; color: #fff; border-radius: 8px;">
-              <h2>TaskMaster Pro Verification</h2>
+            <div style="font-family: Arial, sans-serif; padding: 24px; background: #0f172a; color: #fff; border-radius: 8px; max-width: 500px;">
+              <h2 style="color: #6366f1;">TaskMaster Pro Verification</h2>
+              <p>Hello ${name || 'User'},</p>
               <p>Your 6-digit verification code is:</p>
-              <h1 style="color: #818cf8; letter-spacing: 4px;">${otpCode}</h1>
-              <p>Valid for 10 minutes.</p>
+              <h1 style="color: #818cf8; letter-spacing: 6px; font-size: 36px; margin: 16px 0;">${otpCode}</h1>
+              <p style="color: #94a3b8; font-size: 13px;">This code is valid for 10 minutes. Do not share it with anyone.</p>
             </div>
           `
         });
-
-        if (nodemailer.getTestMessageUrl(info)) {
-          console.log(`[ConsoleEmailService] 🔗 Preview Email URL: ${nodemailer.getTestMessageUrl(info)}`);
-        }
+        console.log(`[SMTP Mailer] ✅ Real email sent to ${toEmail}! Message ID: ${info.messageId}`);
+        return { success: true, provider: 'smtp', messageId: info.messageId };
       } catch (err) {
-        // Console output above is sufficient for local development
+        console.error('[SMTP Mailer Error]:', err.message);
       }
     }
 
-    return { success: true, provider: 'console-dev' };
+    return { success: true, provider: 'console-dev', devOtpCode: otpCode };
   }
 }
 
-// Mailer Factory: Selects Resend if RESEND_API_KEY is configured, otherwise fallback to Console/Dev mailer
 export class EmailService {
   constructor() {
     this.resendService = new ResendEmailService();
@@ -137,18 +140,28 @@ export class EmailService {
   }
 
   async sendVerificationOtp({ toEmail, name, otpCode, type = 'signup' }) {
+    // 1. If Gmail / Custom SMTP is configured, use SMTP (delivers to ANY user email address!)
+    const hasSmtp = Boolean((process.env.GMAIL_USER && process.env.GMAIL_APP_PASS) || (process.env.SMTP_HOST && process.env.SMTP_USER));
+    if (hasSmtp) {
+      const smtpResult = await this.consoleService.sendVerificationOtp({ toEmail, name, otpCode, type });
+      if (smtpResult.provider === 'smtp') {
+        return smtpResult;
+      }
+    }
+
+    // 2. Otherwise try Resend SDK
     if (process.env.RESEND_API_KEY) {
       try {
         return await this.resendService.sendVerificationOtp({ toEmail, name, otpCode, type });
       } catch (err) {
-        console.error('[EmailService] Resend API error, falling back to Development Mailer:', err.message);
-        return await this.consoleService.sendVerificationOtp({ toEmail, name, otpCode, type });
+        console.error('[EmailService] Resend API error:', err.message);
+        throw err;
       }
     }
 
-    // Default to Console/Development Service
     return await this.consoleService.sendVerificationOtp({ toEmail, name, otpCode, type });
   }
 }
 
 export const emailService = new EmailService();
+

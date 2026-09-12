@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layers, Users, LogOut, Copy, Check, Plus, ChevronDown, Sun, Moon, UserMinus, MessageSquare, Settings } from 'lucide-react';
+import { Layers, Users, LogOut, Copy, Check, Plus, ChevronDown, Sun, Moon, UserMinus, MessageSquare, Settings, ShieldCheck } from 'lucide-react';
 
 export const Navbar = ({ 
   user, 
@@ -16,9 +16,12 @@ export const Navbar = ({
   showToast,
   unreadTeamCount = 0,
   onOpenChat,
-  onOpenSettings
+  onOpenSettings,
+  onOpenDeveloperControl
 }) => {
   const [copied, setCopied] = useState(false);
+  const isDeveloper = user && (user.email?.toLowerCase() === 'malviyariyansh11@gmail.com' || user.role === 'developer');
+  const systemRole = user?.role || user?.defaultRole || (isDeveloper ? 'developer' : 'member');
 
   const handleCopyCode = (e) => {
     e.stopPropagation();
@@ -136,6 +139,19 @@ export const Navbar = ({
           </button>
         )}
 
+        {/* Developer Control Panel Trigger */}
+        {isDeveloper && onOpenDeveloperControl && (
+          <button 
+            onClick={onOpenDeveloperControl}
+            className="btn btn-primary btn-sm"
+            style={{ background: 'rgba(99, 102, 241, 0.2)', borderColor: 'rgba(99, 102, 241, 0.5)', color: '#a5b4fc', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
+            title="Open System Developer Controls (Riyansh)"
+          >
+            <ShieldCheck size={16} />
+            <span>Dev Controls</span>
+          </button>
+        )}
+
         {/* Settings & Profile Modal Trigger Button */}
         {onOpenSettings && (
           <button 
@@ -184,7 +200,24 @@ export const Navbar = ({
             {getInitials(user?.name)}
           </div>
           <div className="user-info">
-            <span className="user-name">{user?.name}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span className="user-name">{user?.name}</span>
+              {systemRole === 'developer' && (
+                <span className="role-badge manager" style={{ fontSize: '0.62rem', padding: '1px 6px', background: 'rgba(99, 102, 241, 0.3)', color: '#a5b4fc', border: '1px solid rgba(99, 102, 241, 0.5)' }}>
+                  DEV
+                </span>
+              )}
+              {systemRole === 'admin' && (
+                <span className="role-badge manager" style={{ fontSize: '0.62rem', padding: '1px 6px', background: 'rgba(245, 158, 11, 0.25)', color: '#fcd34d', border: '1px solid rgba(245, 158, 11, 0.5)' }}>
+                  ADMIN
+                </span>
+              )}
+              {systemRole === 'member' && (
+                <span className="role-badge employee" style={{ fontSize: '0.62rem', padding: '1px 6px', background: 'rgba(16, 185, 129, 0.2)', color: '#6ee7b7', border: '1px solid rgba(16, 185, 129, 0.4)' }}>
+                  MEMBER
+                </span>
+              )}
+            </div>
             <span className="user-email">{user?.email}</span>
           </div>
         </div>

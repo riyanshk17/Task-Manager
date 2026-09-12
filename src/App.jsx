@@ -6,6 +6,7 @@ import { ManagerDashboard } from './components/Manager/ManagerDashboard';
 import { EmployeeDashboard } from './components/Employee/EmployeeDashboard';
 import { TeamManagementModal } from './components/Manager/TeamManagementModal';
 import { SettingsModal } from './components/Common/SettingsModal';
+import { DeveloperControlModal } from './components/Developer/DeveloperControlModal';
 import { Toast } from './components/UI/Toast';
 import { AnimatedBackground } from './components/Common/AnimatedBackground';
 
@@ -33,6 +34,7 @@ export function App() {
   const [toast, setToast] = useState(null);
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isDeveloperModalOpen, setIsDeveloperModalOpen] = useState(false);
   const [showGatewayModal, setShowGatewayModal] = useState(false);
 
   // Global Chat Notification state
@@ -65,27 +67,17 @@ export function App() {
     else localStorage.removeItem('tm_activeTeam');
   }, [activeTeam]);
 
-  // Role Enforcement: STRICTLY based on team ownership or explicit team member role.
-  // defaultRole is NEVER used when inside a team — a user who joined via code is always a member
-  // regardless of what role they chose at registration.
+  // System Role Enforcement: Developer & Admin get Manager Dashboard; Members get Employee Dashboard
   useEffect(() => {
     if (user) {
-      if (activeTeam) {
-        const isOwner = activeTeam.ownerEmail
-          ? activeTeam.ownerEmail.toLowerCase() === user.email.toLowerCase()
-          : false;
-        const memberObj = Array.isArray(activeTeam.members)
-          ? activeTeam.members.find(m => m.email && m.email.toLowerCase() === user.email.toLowerCase())
-          : null;
-        // Only owner or a member explicitly assigned role='manager' gets manager dashboard
-        const isManager = isOwner || (memberObj && memberObj.role === 'manager');
-        setCurrentRole(isManager ? 'manager' : 'employee');
+      const userRole = user.role || user.defaultRole || (user.email.toLowerCase() === 'malviyariyansh11@gmail.com' ? 'developer' : 'member');
+      if (userRole === 'developer' || userRole === 'admin') {
+        setCurrentRole('manager');
       } else {
-        // No team yet — use defaultRole only in this case
-        setCurrentRole(user.defaultRole === 'manager' ? 'manager' : 'employee');
+        setCurrentRole('employee');
       }
     }
-  }, [activeTeam, user]);
+  }, [user, activeTeam]);
 
   const showToast = (message, type = 'info') => {
     setToast({ message, type });
@@ -95,22 +87,14 @@ export function App() {
   const handleLoginSuccess = (userData, teams) => {
     setUser(userData);
     setUserTeams(teams || []);
+    const userRole = userData.role || userData.defaultRole || (userData.email.toLowerCase() === 'malviyariyansh11@gmail.com' ? 'developer' : 'member');
+    
     if (teams && teams.length > 0) {
-      const firstTeam = teams[0];
-      setActiveTeam(firstTeam);
-      const isOwner = firstTeam.ownerEmail
-        ? firstTeam.ownerEmail.toLowerCase() === userData.email.toLowerCase()
-        : false;
-      const memberObj = Array.isArray(firstTeam.members)
-        ? firstTeam.members.find(m => m.email && m.email.toLowerCase() === userData.email.toLowerCase())
-        : null;
-      // Only owner or explicitly assigned team manager gets manager dashboard
-      const isManager = isOwner || (memberObj && memberObj.role === 'manager');
-      setCurrentRole(isManager ? 'manager' : 'employee');
+      setActiveTeam(teams[0]);
     } else {
       setActiveTeam(null);
-      setCurrentRole(userData.defaultRole === 'manager' ? 'manager' : 'employee');
     }
+    setCurrentRole(userRole === 'developer' || userRole === 'admin' ? 'manager' : 'employee');
   };
 
   const handleTeamJoined = (team, role) => {
@@ -119,7 +103,6 @@ export function App() {
       const exists = prev.some(t => t.id === team.id);
       return exists ? prev.map(t => t.id === team.id ? team : t) : [...prev, team];
     });
-    setCurrentRole(role || 'employee');
     setShowGatewayModal(false);
   };
 
@@ -127,15 +110,6 @@ export function App() {
     const selected = userTeams.find(t => t.id === teamId);
     if (selected) {
       setActiveTeam(selected);
-      const isOwner = selected.ownerEmail
-        ? selected.ownerEmail.toLowerCase() === user.email.toLowerCase()
-        : false;
-      const memberObj = Array.isArray(selected.members)
-        ? selected.members.find(m => m.email && m.email.toLowerCase() === user.email.toLowerCase())
-        : null;
-      // Only owner or explicitly assigned team manager gets manager dashboard
-      const isManager = isOwner || (memberObj && memberObj.role === 'manager');
-      setCurrentRole(isManager ? 'manager' : 'employee');
       showToast(`Switched to team workspace: ${selected.name}`, 'info');
     }
   };
@@ -159,10 +133,7 @@ export function App() {
       setUserTeams(updatedTeams);
 
       if (updatedTeams.length > 0) {
-        const nextTeam = updatedTeams[0];
-        setActiveTeam(nextTeam);
-        const isOwner = nextTeam.ownerEmail.toLowerCase() === user.email.toLowerCase();
-        setCurrentRole(isOwner ? 'manager' : 'employee');
+        setActiveTeam(updatedTeams[0]);
       } else {
         setActiveTeam(null);
         setShowGatewayModal(true);
@@ -200,7 +171,7 @@ export function App() {
                 </button>
               </div>
             )}
-            <TeamGateway user={user} onTeamJoined={handleTeamJoined} showToast={showToast} theme={theme} onToggleTheme={toggleTheme} />
+            <TeamGateway user={user} onTeamJoined={handleTeamJoined} showToast={showToast} theme={theme} onToggleTheme={toggleTheme} onLogout={handleLogout} />
           </div>
         ) : (
           <>
@@ -215,6 +186,7 @@ export function App() {
               onOpenGateway={() => setShowGatewayModal(true)}
               onOpenTeamModal={() => setIsTeamModalOpen(true)}
               onOpenSettings={() => setIsSettingsOpen(true)}
+              onOpenDeveloperControl={() => setIsDeveloperModalOpen(true)}
               onLeaveTeam={handleLeaveTeam}
               onLogout={handleLogout}
               showToast={showToast}
@@ -266,6 +238,13 @@ export function App() {
               theme={theme}
               onToggleTheme={toggleTheme}
               onLogout={handleLogout}
+              showToast={showToast}
+            />
+
+            <DeveloperControlModal
+              isOpen={isDeveloperModalOpen}
+              onClose={() => setIsDeveloperModalOpen(false)}
+              user={user}
               showToast={showToast}
             />
           </>

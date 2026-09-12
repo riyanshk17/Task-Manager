@@ -8,10 +8,11 @@ import dotenv from 'dotenv';
 import crypto from 'crypto';
 import { emailService } from './services/emailService.js';
 
-dotenv.config();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -119,115 +120,23 @@ const otpStore = new Map();
 const getInitialSeed = () => ({
   users: [
     {
-      id: 'usr_mgr_1',
-      name: 'Manager Sarah Jenkins',
-      email: 'manager@company.com',
-      password: 'password123',
-      defaultRole: 'manager',
-      createdAt: new Date().toISOString()
-    },
-    {
-      id: 'usr_emp_1',
-      name: 'Alex Rivera',
-      email: 'alex@company.com',
-      password: 'password123',
-      defaultRole: 'employee',
-      createdAt: new Date().toISOString()
-    },
-    {
-      id: 'usr_emp_2',
-      name: 'John Doe',
-      email: 'john@company.com',
-      password: 'password123',
-      defaultRole: 'employee',
-      createdAt: new Date().toISOString()
-    },
-    {
-      id: 'usr_emp_3',
-      name: 'Emily Watson',
-      email: 'emily@company.com',
-      password: 'password123',
-      defaultRole: 'employee',
-      createdAt: new Date().toISOString()
+      id: 'usr_dev_fixed',
+      name: 'Riyansh Malviya',
+      email: 'malviyariyansh11@gmail.com',
+      password: '@Java8109',
+      role: 'developer',
+      defaultRole: 'developer',
+      isVerified: true,
+      isBlocked: false,
+      createdAt: new Date().toISOString(),
+      bio: 'System Developer & Master Admin',
+      jobTitle: 'Lead Developer'
     }
   ],
-  teams: [
-    {
-      id: 'team_alpha',
-      name: 'Product Engineering Team',
-      code: 'TEAM-7X9B2K',
-      ownerEmail: 'manager@company.com',
-      createdAt: new Date().toISOString(),
-      members: [
-        { email: 'manager@company.com', name: 'Manager Sarah Jenkins', role: 'manager' },
-        { email: 'alex@company.com', name: 'Alex Rivera', role: 'employee' },
-        { email: 'john@company.com', name: 'John Doe', role: 'employee' },
-        { email: 'emily@company.com', name: 'Emily Watson', role: 'employee' }
-      ]
-    }
-  ],
-  tasks: [
-    {
-      id: 'task_101',
-      teamId: 'team_alpha',
-      title: 'Design New Dashboard UI Wireframes',
-      description: 'Create high-fidelity responsive wireframes for the manager executive overview.',
-      assignedTo: 'alex@company.com',
-      assignedToName: 'Alex Rivera',
-      createdBy: 'manager@company.com',
-      dueDate: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
-      priority: 'High',
-      status: 'In Progress',
-      notes: 'Initial component layout approved by design team.',
-      createdAt: new Date(Date.now() - 86400000).toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    {
-      id: 'task_102',
-      teamId: 'team_alpha',
-      title: 'Fix Authentication Token Refresh Bug',
-      description: 'Resolve session timeout issue where token renewal fails on background tab resume.',
-      assignedTo: 'alex@company.com',
-      assignedToName: 'Alex Rivera',
-      createdBy: 'manager@company.com',
-      dueDate: new Date(Date.now() + 86400000 * 4).toISOString().split('T')[0],
-      priority: 'Urgent',
-      status: 'Pending',
-      notes: '',
-      createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    {
-      id: 'task_103',
-      teamId: 'team_alpha',
-      title: 'Database Indexing Optimization',
-      description: 'Add index queries for user task lookups by email to speed up response time.',
-      assignedTo: 'john@company.com',
-      assignedToName: 'John Doe',
-      createdBy: 'manager@company.com',
-      dueDate: new Date(Date.now() + 86400000 * 1).toISOString().split('T')[0],
-      priority: 'Medium',
-      status: 'Completed',
-      notes: 'Completed query optimization tests. Performance improved by 40%.',
-      createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    {
-      id: 'task_104',
-      teamId: 'team_alpha',
-      title: 'Write API Documentation for Task Endpoints',
-      description: 'Document POST /api/tasks and PUT /api/tasks with Swagger JSON spec.',
-      assignedTo: 'emily@company.com',
-      assignedToName: 'Emily Watson',
-      createdBy: 'manager@company.com',
-      dueDate: new Date(Date.now() + 86400000 * 5).toISOString().split('T')[0],
-      priority: 'Low',
-      status: 'Pending',
-      notes: '',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }
-  ]
+  teams: [],
+  tasks: [],
+  taskBank: [],
+  teamMessages: []
 });
 
 // Helper: Read store
@@ -443,163 +352,7 @@ async function sendEmailViaApiOrSmtp({ toEmail, name, otpCode, type }) {
   return false;
 }
 
-// 1. AUTH: Send Email OTP
-app.post('/api/auth/send-otp', async (req, res) => {
-  const { email, type = 'signup', name } = req.body;
-  if (!email || !email.includes('@')) {
-    return res.status(400).json({ error: 'Please enter a valid email address.' });
-  }
-
-  const cleanEmail = email.trim().toLowerCase();
-  const db = readData();
-  const existingUser = db.users.find(u => u.email.toLowerCase() === cleanEmail);
-
-  if (type === 'signup' && existingUser) {
-    return res.status(400).json({ error: 'An account with this email address already exists. Please sign in.' });
-  }
-
-  if ((type === 'login' || type === 'reset') && !existingUser) {
-    return res.status(404).json({ error: 'No account found with this email address. Please check spelling or register.' });
-  }
-
-  // 60-Second Resend Cooldown Check
-  const existingOtp = otpStore.get(cleanEmail);
-  if (existingOtp && existingOtp.resendAllowedAt && Date.now() < existingOtp.resendAllowedAt) {
-    const remainingSeconds = Math.ceil((existingOtp.resendAllowedAt - Date.now()) / 1000);
-    return res.status(429).json({ 
-      error: `Please wait ${remainingSeconds} seconds before requesting a new verification code.`,
-      resendCooldownSeconds: remainingSeconds
-    });
-  }
-
-  // Generate Cryptographically Secure 6-Digit OTP
-  const otpCode = crypto.randomInt(100000, 1000000).toString();
-  const otpHash = crypto.createHash('sha256').update(otpCode).digest('hex');
-
-  const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
-  const resendAllowedAt = Date.now() + 60 * 1000; // 60 seconds cooldown
-
-  otpStore.set(cleanEmail, {
-    otpHash,
-    expiresAt,
-    resendAllowedAt,
-    attempts: 0,
-    type,
-    createdAt: new Date().toISOString()
-  });
-
-  try {
-    await emailService.sendVerificationOtp({ toEmail: cleanEmail, name, otpCode, type });
-    res.json({
-      message: `Verification code sent to ${cleanEmail}. Please check your inbox.`,
-      email: cleanEmail,
-      resendCooldownSeconds: 60
-    });
-  } catch (err) {
-    console.error(`[OTP Error] Failed sending OTP to ${cleanEmail}:`, err.message);
-    res.status(500).json({ error: "We couldn't send the verification code. Please try again." });
-  }
-});
-
-// 2. AUTH: Verify OTP & Register/Authenticate User
-app.post('/api/auth/verify-otp', (req, res) => {
-  const { email, otp, otpCode, type = 'signup', name, password, defaultRole } = req.body;
-  const submittedOtp = (otp || otpCode || '').toString().trim();
-
-  if (!email || !submittedOtp) {
-    return res.status(400).json({ error: 'Email address and 6-digit verification code are required.' });
-  }
-
-  const cleanEmail = email.trim().toLowerCase();
-  const storedOtp = otpStore.get(cleanEmail);
-
-  if (!storedOtp) {
-    return res.status(400).json({ error: 'No active verification code found for this email. Please request a new code.' });
-  }
-
-  // Expiration Check (10 Minutes)
-  if (Date.now() > storedOtp.expiresAt) {
-    otpStore.delete(cleanEmail);
-    return res.status(400).json({ error: 'This code has expired. Please request a new code.' });
-  }
-
-  // Attempt Limit Check (Maximum 5 Failed Attempts)
-  if (storedOtp.attempts >= 5) {
-    otpStore.delete(cleanEmail);
-    return res.status(429).json({ error: 'Too many incorrect attempts. Please request a new code.' });
-  }
-
-  // Secure Cryptographic Verification
-  const submittedHash = crypto.createHash('sha256').update(submittedOtp).digest('hex');
-  const isMatch = crypto.timingSafeEqual(
-    Buffer.from(storedOtp.otpHash),
-    Buffer.from(submittedHash)
-  );
-
-  if (!isMatch) {
-    storedOtp.attempts += 1;
-    if (storedOtp.attempts >= 5) {
-      otpStore.delete(cleanEmail);
-      return res.status(429).json({ error: 'Too many incorrect attempts. Please request a new code.' });
-    }
-    return res.status(400).json({ 
-      error: 'That code is incorrect. Please check your email and try again.',
-      remainingAttempts: 5 - storedOtp.attempts
-    });
-  }
-
-  // OTP Verified! Consume single-use token
-  otpStore.delete(cleanEmail);
-
-  const db = readData();
-
-  if (type === 'signup') {
-    let user = db.users.find(u => u.email.toLowerCase() === cleanEmail);
-    if (!user) {
-      user = {
-        id: `usr_${Date.now()}`,
-        name: name ? name.trim() : cleanEmail.split('@')[0],
-        email: cleanEmail,
-        password: password || 'password123',
-        defaultRole: defaultRole || 'employee',
-        isVerified: true,
-        verifiedAt: new Date().toISOString(),
-        createdAt: new Date().toISOString()
-      };
-      db.users.push(user);
-      writeData(db);
-    } else {
-      user.isVerified = true;
-      user.verifiedAt = new Date().toISOString();
-      writeData(db);
-    }
-
-    const userTeams = db.teams.filter(t => t.members.some(m => m.email.toLowerCase() === cleanEmail)).map(t => enrichTeam(db, t));
-    return res.json({
-      message: 'Email verified successfully.',
-      user: { id: user.id, name: user.name, email: user.email, defaultRole: user.defaultRole, isVerified: true, avatarUrl: user.avatarUrl || '' },
-      userTeams
-    });
-  } else {
-    // Login Verification
-    const user = db.users.find(u => u.email.toLowerCase() === cleanEmail);
-    if (!user) {
-      return res.status(404).json({ error: 'User account not found.' });
-    }
-    user.isVerified = true;
-    user.verifiedAt = new Date().toISOString();
-    writeData(db);
-
-    const userTeams = db.teams.filter(t => t.members.some(m => m.email.toLowerCase() === cleanEmail)).map(t => enrichTeam(db, t));
-    return res.json({
-      message: 'Email verified successfully.',
-      user: { id: user.id, name: user.name, email: user.email, defaultRole: user.defaultRole, isVerified: true, avatarUrl: user.avatarUrl || '' },
-      userTeams
-    });
-  }
-});
-
-// 3. AUTH: Password Login Direct
+// 1. AUTH: Password Login Direct
 app.post('/api/auth/login', (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
@@ -614,6 +367,11 @@ app.post('/api/auth/login', (req, res) => {
     return res.status(401).json({ error: 'Invalid email or password.' });
   }
 
+  if (user.isBlocked) {
+    return res.status(403).json({ error: 'Your account has been blocked by the System Developer.' });
+  }
+
+  const userRole = user.role || user.defaultRole || (cleanEmail === 'malviyariyansh11@gmail.com' ? 'developer' : 'member');
   const userTeams = db.teams.filter(t => t.members.some(m => m.email.toLowerCase() === cleanEmail)).map(t => enrichTeam(db, t));
 
   res.json({
@@ -621,7 +379,9 @@ app.post('/api/auth/login', (req, res) => {
       id: user.id, 
       name: user.name, 
       email: user.email, 
-      defaultRole: user.defaultRole,
+      role: userRole,
+      defaultRole: userRole,
+      isBlocked: user.isBlocked || false,
       bio: user.bio || '',
       jobTitle: user.jobTitle || '',
       avatarUrl: user.avatarUrl || ''
@@ -630,9 +390,9 @@ app.post('/api/auth/login', (req, res) => {
   });
 });
 
-// 3b. AUTH: Direct Sign Up
+// 2. AUTH: Direct Sign Up (Default role: 'member', Developer role for malviyariyansh11@gmail.com)
 app.post('/api/auth/signup', (req, res) => {
-  const { name, email, password, defaultRole } = req.body;
+  const { name, email, password } = req.body;
   if (!name || !email || !password) {
     return res.status(400).json({ error: 'Name, email, and password are required.' });
   }
@@ -645,12 +405,15 @@ app.post('/api/auth/signup', (req, res) => {
     return res.status(400).json({ error: 'An account with this email already exists. Please sign in.' });
   }
 
+  const systemRole = cleanEmail === 'malviyariyansh11@gmail.com' ? 'developer' : 'member';
   const newUser = {
     id: `usr_${Date.now()}`,
     name: name.trim(),
     email: cleanEmail,
     password: password,
-    defaultRole: defaultRole || 'employee',
+    role: systemRole,
+    defaultRole: systemRole,
+    isBlocked: false,
     createdAt: new Date().toISOString()
   };
 
@@ -661,8 +424,128 @@ app.post('/api/auth/signup', (req, res) => {
 
   res.status(201).json({
     message: 'Account registered successfully!',
-    user: { id: newUser.id, name: newUser.name, email: newUser.email, defaultRole: newUser.defaultRole, avatarUrl: '' },
+    user: { id: newUser.id, name: newUser.name, email: newUser.email, role: systemRole, defaultRole: systemRole, isBlocked: false, avatarUrl: '' },
     userTeams
+  });
+});
+
+// 3. DEVELOPER CONTROLS
+// 3a. Fetch All System Accounts (Developer Only)
+app.get('/api/developer/users', (req, res) => {
+  const requesterEmail = (req.query.requesterEmail || '').trim().toLowerCase();
+  const db = readData();
+
+  const requester = db.users.find(u => u.email.toLowerCase() === requesterEmail);
+  if (requesterEmail !== 'malviyariyansh11@gmail.com' && (!requester || requester.role !== 'developer')) {
+    return res.status(403).json({ error: 'Access denied. Only Developer can view system users.' });
+  }
+
+  const sanitizedUsers = db.users.map(u => ({
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    role: u.role || u.defaultRole || (u.email.toLowerCase() === 'malviyariyansh11@gmail.com' ? 'developer' : 'member'),
+    isBlocked: u.isBlocked || false,
+    createdAt: u.createdAt
+  }));
+
+  res.json({
+    users: sanitizedUsers,
+    stats: {
+      totalUsers: sanitizedUsers.length,
+      developers: sanitizedUsers.filter(u => u.role === 'developer').length,
+      admins: sanitizedUsers.filter(u => u.role === 'admin').length,
+      members: sanitizedUsers.filter(u => u.role === 'member').length,
+      blocked: sanitizedUsers.filter(u => u.isBlocked).length,
+      totalTeams: db.teams.length,
+      totalTasks: db.tasks.length
+    }
+  });
+});
+
+// 3b. Promote or Demote System Role (Developer Only)
+app.post('/api/developer/change-role', (req, res) => {
+  const { requesterEmail, targetEmail, newRole } = req.body;
+  if (!requesterEmail || !targetEmail || !newRole) {
+    return res.status(400).json({ error: 'Requester email, target email, and new role are required.' });
+  }
+
+  const cleanRequester = requesterEmail.trim().toLowerCase();
+  const cleanTarget = targetEmail.trim().toLowerCase();
+  const db = readData();
+
+  const requester = db.users.find(u => u.email.toLowerCase() === cleanRequester);
+  if (cleanRequester !== 'malviyariyansh11@gmail.com' && (!requester || requester.role !== 'developer')) {
+    return res.status(403).json({ error: 'Access denied. Only the Developer can assign system roles.' });
+  }
+
+  if (cleanTarget === 'malviyariyansh11@gmail.com') {
+    return res.status(400).json({ error: 'The Developer account role cannot be altered.' });
+  }
+
+  const targetUser = db.users.find(u => u.email.toLowerCase() === cleanTarget);
+  if (!targetUser) {
+    return res.status(404).json({ error: `No registered user account found for ${cleanTarget}.` });
+  }
+
+  const roleLower = newRole.trim().toLowerCase();
+  if (roleLower !== 'admin' && roleLower !== 'member') {
+    return res.status(400).json({ error: 'Invalid role. Roles can only be "admin" or "member".' });
+  }
+
+  targetUser.role = roleLower;
+  targetUser.defaultRole = roleLower;
+  targetUser.updatedAt = new Date().toISOString();
+
+  // Also update role inside any team member lists
+  db.teams.forEach(t => {
+    t.members.forEach(m => {
+      if (m.email.toLowerCase() === cleanTarget) {
+        m.role = roleLower === 'admin' ? 'manager' : 'employee';
+      }
+    });
+  });
+
+  writeData(db);
+
+  res.json({
+    message: `Successfully updated ${targetUser.name} (${targetUser.email}) to ${roleLower.toUpperCase()}!`,
+    user: { id: targetUser.id, name: targetUser.name, email: targetUser.email, role: targetUser.role }
+  });
+});
+
+// 3c. Block / Unblock User Account (Developer Only)
+app.post('/api/developer/toggle-block', (req, res) => {
+  const { requesterEmail, targetEmail } = req.body;
+  if (!requesterEmail || !targetEmail) {
+    return res.status(400).json({ error: 'Requester email and target email are required.' });
+  }
+
+  const cleanRequester = requesterEmail.trim().toLowerCase();
+  const cleanTarget = targetEmail.trim().toLowerCase();
+  const db = readData();
+
+  const requester = db.users.find(u => u.email.toLowerCase() === cleanRequester);
+  if (cleanRequester !== 'malviyariyansh11@gmail.com' && (!requester || requester.role !== 'developer')) {
+    return res.status(403).json({ error: 'Access denied. Only the Developer can block user accounts.' });
+  }
+
+  if (cleanTarget === 'malviyariyansh11@gmail.com') {
+    return res.status(400).json({ error: 'The Developer account cannot be blocked.' });
+  }
+
+  const targetUser = db.users.find(u => u.email.toLowerCase() === cleanTarget);
+  if (!targetUser) {
+    return res.status(404).json({ error: `No registered user account found for ${cleanTarget}.` });
+  }
+
+  targetUser.isBlocked = !targetUser.isBlocked;
+  targetUser.updatedAt = new Date().toISOString();
+  writeData(db);
+
+  res.json({
+    message: `Account ${targetUser.email} is now ${targetUser.isBlocked ? 'BLOCKED' : 'UNBLOCKED'}.`,
+    user: { id: targetUser.id, email: targetUser.email, isBlocked: targetUser.isBlocked }
   });
 });
 
@@ -838,6 +721,13 @@ app.post('/api/teams/create', (req, res) => {
 
   const cleanOwnerEmail = ownerEmail.trim().toLowerCase();
   const db = readData();
+
+  const user = db.users.find(u => u.email.toLowerCase() === cleanOwnerEmail);
+  const userRole = user ? (user.role || user.defaultRole) : 'member';
+
+  if (cleanOwnerEmail !== 'malviyariyansh11@gmail.com' && userRole !== 'developer' && userRole !== 'admin') {
+    return res.status(403).json({ error: 'Only Admins or the Developer can create new teams. Members can join existing teams via Team Code.' });
+  }
 
   const teamCode = generateTeamCode();
   const newTeam = {
