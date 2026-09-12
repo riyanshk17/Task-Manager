@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layers, Mail, Lock, User, ArrowRight, ShieldCheck, Sun, Moon } from 'lucide-react';
+import { Layers, Mail, Lock, User, ArrowRight, Sun, Moon } from 'lucide-react';
 
 export const AuthModal = ({ onLoginSuccess, showToast, theme, onToggleTheme }) => {
   const [isLogin, setIsLogin] = useState(true);
@@ -68,31 +68,6 @@ export const AuthModal = ({ onLoginSuccess, showToast, theme, onToggleTheme }) =
         setLoading(false);
         showToast('Unable to connect to server. Ensure backend is running.', 'error');
       }
-    }
-  };
-
-  // Quick 1-Click Developer Login Demo Helper
-  const handleDeveloperQuickLogin = async () => {
-    setEmail('malviyariyansh11@gmail.com');
-    setPassword('@Java8109');
-    setLoading(true);
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: 'malviyariyansh11@gmail.com', password: '@Java8109' })
-      });
-      const data = await res.json();
-      setLoading(false);
-      if (res.ok) {
-        showToast(`Logged in as Developer ${data.user.name}`, 'success');
-        onLoginSuccess(data.user, data.userTeams || []);
-      } else {
-        showToast(data.error || 'Developer login failed.', 'error');
-      }
-    } catch (err) {
-      setLoading(false);
-      showToast('Error connecting to backend.', 'error');
     }
   };
 
@@ -202,19 +177,6 @@ export const AuthModal = ({ onLoginSuccess, showToast, theme, onToggleTheme }) =
             )}
           </button>
         </form>
-
-        <div className="quick-demo-box">
-          <div className="quick-demo-title">Fast 1-Click Access</div>
-          <button 
-            type="button"
-            className="btn btn-secondary"
-            onClick={handleDeveloperQuickLogin}
-            disabled={loading}
-            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: 'rgba(99, 102, 241, 0.15)', borderColor: 'rgba(99, 102, 241, 0.3)', color: '#818cf8', fontWeight: 600 }}
-          >
-            <ShieldCheck size={16} /> Sign In as Developer (Riyansh)
-          </button>
-        </div>
       </div>
     </div>
   );
