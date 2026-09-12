@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Layers, Mail, Lock, User, ArrowRight, Sun, Moon } from 'lucide-react';
+import { OtpVerification } from './OtpVerification';
 
 export const AuthModal = ({ onLoginSuccess, showToast, theme, onToggleTheme }) => {
   const [isLogin, setIsLogin] = useState(true);
+  const [showOtpScreen, setShowOtpScreen] = useState(false);
   
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -42,15 +44,15 @@ export const AuthModal = ({ onLoginSuccess, showToast, theme, onToggleTheme }) =
         showToast('Unable to connect to server. Ensure backend is running.', 'error');
       }
     } else {
-      // Direct Sign Up Flow
+      // Sign Up Flow: Send OTP first
       try {
-        const res = await fetch('/api/auth/signup', {
+        const res = await fetch('/api/auth/send-otp', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: name.trim(),
             email: email.trim(),
-            password
+            type: 'signup'
           })
         });
 
@@ -58,12 +60,12 @@ export const AuthModal = ({ onLoginSuccess, showToast, theme, onToggleTheme }) =
         setLoading(false);
 
         if (!res.ok) {
-          showToast(data.error || 'Registration failed. Please try again.', 'error');
+          showToast(data.error || 'Failed to send verification code.', 'error');
           return;
         }
 
-        showToast(`Account registered successfully! Welcome ${data.user.name}.`, 'success');
-        onLoginSuccess(data.user, data.userTeams || []);
+        showToast(`Verification code sent to ${email.trim()}!`, 'success');
+        setShowOtpScreen(true);
       } catch (err) {
         setLoading(false);
         showToast('Unable to connect to server. Ensure backend is running.', 'error');
@@ -85,99 +87,120 @@ export const AuthModal = ({ onLoginSuccess, showToast, theme, onToggleTheme }) =
           </button>
         )}
 
-        <div className="auth-header">
-          <div className="brand-icon" style={{ margin: '0 auto 1rem auto', width: 52, height: 52 }}>
-            <Layers size={28} />
-          </div>
-          <h2>TaskMaster Pro</h2>
-          <div className="live-indicator" style={{ marginTop: '0.4rem' }}>
-            <div className="live-dot" />
-            <span>STUDY & TEAM WORKSPACE HUB</span>
-          </div>
-        </div>
-
-        <div className="auth-tabs">
-          <button 
-            type="button"
-            className={`auth-tab ${isLogin ? 'active' : ''}`}
-            onClick={() => setIsLogin(true)}
-          >
-            Sign In
-          </button>
-          <button 
-            type="button"
-            className={`auth-tab ${!isLogin ? 'active' : ''}`}
-            onClick={() => setIsLogin(false)}
-          >
-            Register Account
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit}>
-          {!isLogin && (
-            <div className="form-group">
-              <label className="form-label">Full Name</label>
-              <div style={{ position: 'relative' }}>
-                <User size={16} className="search-icon" />
-                <input 
-                  type="text"
-                  className="form-input"
-                  style={{ paddingLeft: '2.4rem' }}
-                  placeholder="e.g. Sarah Jenkins"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  required={!isLogin}
-                />
+        {showOtpScreen ? (
+          <OtpVerification 
+            email={email.trim()}
+            name={name.trim()}
+            password={password}
+            type="signup"
+            onVerifySuccess={(user, userTeams) => onLoginSuccess(user, userTeams)}
+            onBackToEmail={() => setShowOtpScreen(false)}
+            showToast={showToast}
+          />
+        ) : (
+          <>
+            <div className="auth-header">
+              <div className="brand-icon" style={{ margin: '0 auto 1rem auto', width: 52, height: 52 }}>
+                <Layers size={28} />
+              </div>
+              <h2>TaskMaster Pro</h2>
+              <div className="live-indicator" style={{ marginTop: '0.4rem' }}>
+                <div className="live-dot" />
+                <span>STUDY & TEAM WORKSPACE HUB</span>
               </div>
             </div>
-          )}
 
-          <div className="form-group">
-            <label className="form-label">Email Address</label>
-            <div style={{ position: 'relative' }}>
-              <Mail size={16} className="search-icon" />
-              <input 
-                type="email"
-                className="form-input"
-                style={{ paddingLeft: '2.4rem' }}
-                placeholder="you@example.com"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-              />
+            <div className="auth-tabs">
+              <button 
+                type="button"
+                className={`auth-tab ${isLogin ? 'active' : ''}`}
+                onClick={() => {
+                  setIsLogin(true);
+                  setShowOtpScreen(false);
+                }}
+              >
+                Sign In
+              </button>
+              <button 
+                type="button"
+                className={`auth-tab ${!isLogin ? 'active' : ''}`}
+                onClick={() => {
+                  setIsLogin(false);
+                  setShowOtpScreen(false);
+                }}
+              >
+                Register Account
+              </button>
             </div>
-          </div>
 
-          <div className="form-group">
-            <label className="form-label">Password</label>
-            <div style={{ position: 'relative' }}>
-              <Lock size={16} className="search-icon" />
-              <input 
-                type="password"
-                className="form-input"
-                style={{ paddingLeft: '2.4rem' }}
-                placeholder="••••••••"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                required
-              />
-            </div>
-          </div>
+            <form onSubmit={handleSubmit}>
+              {!isLogin && (
+                <div className="form-group">
+                  <label className="form-label">Full Name</label>
+                  <div style={{ position: 'relative' }}>
+                    <User size={16} className="search-icon" />
+                    <input 
+                      type="text"
+                      className="form-input"
+                      style={{ paddingLeft: '2.4rem' }}
+                      placeholder="e.g. Sarah Jenkins"
+                      value={name}
+                      onChange={e => setName(e.target.value)}
+                      required={!isLogin}
+                    />
+                  </div>
+                </div>
+              )}
 
-          <button 
-            type="submit" 
-            className="btn btn-primary"
-            style={{ width: '100%', marginTop: '0.5rem', padding: '0.85rem' }}
-            disabled={loading}
-          >
-            {loading ? 'Processing...' : (
-              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                {isLogin ? 'Sign In to Account' : 'Create Member Account'} <ArrowRight size={18} />
-              </span>
-            )}
-          </button>
-        </form>
+              <div className="form-group">
+                <label className="form-label">Email Address</label>
+                <div style={{ position: 'relative' }}>
+                  <Mail size={16} className="search-icon" />
+                  <input 
+                    type="email"
+                    className="form-input"
+                    style={{ paddingLeft: '2.4rem' }}
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Password</label>
+                <div style={{ position: 'relative' }}>
+                  <Lock size={16} className="search-icon" />
+                  <input 
+                    type="password"
+                    className="form-input"
+                    style={{ paddingLeft: '2.4rem' }}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <button 
+                type="submit" 
+                className="btn btn-primary"
+                style={{ width: '100%', marginTop: '0.5rem', padding: '0.85rem' }}
+                disabled={loading}
+              >
+                {loading ? (isLogin ? 'Signing In...' : 'Sending Code...') : (
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                    {isLogin ? 'Sign In to Account' : 'Send Verification Code'} <ArrowRight size={18} />
+                  </span>
+                )}
+              </button>
+            </form>
+          </>
+        )}
       </div>
     </div>
   );
 };
+

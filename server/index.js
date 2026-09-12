@@ -261,98 +261,161 @@ app.post('/api/seed', (req, res) => {
   res.json({ message: 'Database reset successfully', data: seed });
 });
 
-// Helper: Send Email via HTTPS API (Resend / Brevo) or Nodemailer SMTP fallback
-async function sendEmailViaApiOrSmtp({ toEmail, name, otpCode, type }) {
-  const subject = `Your TaskMaster Verification Code: ${otpCode}`;
-  const htmlContent = `
-    <div style="font-family: Arial, sans-serif; background-color: #0b0f19; color: #f8fafc; padding: 24px; border-radius: 12px; max-width: 500px; margin: 0 auto; border: 1px solid #1e293b;">
-      <h2 style="color: #6366f1; text-align: center; margin-bottom: 8px;">TaskMaster Pro</h2>
-      <p style="text-align: center; color: #94a3b8; font-size: 14px;">Professional Study & Workspace Hub</p>
-      <hr style="border: 0; border-top: 1px solid #334155; margin: 20px 0;" />
-      <p style="font-size: 16px;">Hello <strong>${name || 'User'}</strong>,</p>
-      <p style="font-size: 14px; color: #cbd5e1;">Your single-use verification code to complete your ${type === 'signup' ? 'registration' : 'sign in'} is:</p>
-      <div style="background: rgba(99, 102, 241, 0.15); border: 1px dashed #6366f1; font-size: 32px; font-weight: bold; letter-spacing: 6px; text-align: center; color: #818cf8; padding: 16px; border-radius: 8px; margin: 20px 0;">
-        ${otpCode}
-      </div>
-      <p style="font-size: 13px; color: #94a3b8; text-align: center;">This code is valid for 10 minutes. Do not share it with anyone.</p>
-    </div>
-  `;
-  const textContent = `Hello ${name || 'User'},\n\nYour 6-digit security code for TaskMaster Pro is: ${otpCode}\n\nThis code will expire in 10 minutes.\n\nBest regards,\nTaskMaster Pro Team`;
+// 1. AUTH: Send Email OTP for Signup / Password Reset
+app.post('/api/auth/send-otp', async (req, res) => {
+  const { email, name, type = 'signup' } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'Email address is required.' });
+  }
 
-  // 1. Check Resend API Key
-  if (process.env.RESEND_API_KEY) {
-    try {
-      const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          from: 'TaskMaster Pro <onboarding@resend.dev>',
-          to: [toEmail],
-          subject,
-          html: htmlContent
-        })
-      });
-      if (res.ok) {
-        console.log(`✅ Real email delivered to ${toEmail} via Resend HTTPS API!`);
-        return true;
-      }
-    } catch (err) {
-      console.error('Resend API error:', err.message);
+  const cleanEmail = email.trim().toLowerCase();
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(cleanEmail)) {
+    return res.status(400).json({ error: 'Please enter a valid email address.' });
+  }
+
+  const db = readData();
+
+  if (type === 'signup') {
+    const existingUser = db.users.find(u => u.email.toLowerCase() === cleanEmail);
+    if (existingUser) {
+      return res.status(400).json({ error: 'An account with this email already exists. Please sign in.' });
     }
   }
 
-  // 2. Check Brevo API Key
-  if (process.env.BREVO_API_KEY) {
-    try {
-      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: {
-          'api-key': process.env.BREVO_API_KEY,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          sender: { name: 'TaskMaster Pro', email: 'no-reply@taskmasterpro.com' },
-          to: [{ email: toEmail }],
-          subject,
-          htmlContent
-        })
+  // 60-second resend cooldown check
+  const existingOtp = otpStore.get(cleanEmail);
+  if (existingOtp && existingOtp.lastSentAt) {
+    const elapsed = (Date.now() - existingOtp.lastSentAt) / 1000;
+    if (elapsed < 60) {
+      const waitSeconds = Math.ceil(60 - elapsed);
+      return res.status(429).json({ 
+        error: `Please wait ${waitSeconds} second${waitSeconds === 1 ? '' : 's'} before requesting a new verification code.` 
       });
-      if (res.ok) {
-        console.log(`✅ Real email delivered to ${toEmail} via Brevo HTTPS API!`);
-        return true;
-      }
-    } catch (err) {
-      console.error('Brevo API error:', err.message);
     }
   }
 
-  // 3. Fallback to Nodemailer Transporter
-  if (transporter) {
-    try {
-      const info = await transporter.sendMail({
-        from: process.env.SMTP_USER || process.env.GMAIL_USER || '"TaskMaster Pro" <no-reply@taskmasterpro.com>',
-        to: toEmail,
-        subject,
-        text: textContent,
-        html: htmlContent
-      });
-      if (nodemailer.getTestMessageUrl(info)) {
-        console.log(`Preview Email URL: ${nodemailer.getTestMessageUrl(info)}`);
-      }
-      console.log(`Mail sent via Nodemailer to ${toEmail}:`, info.messageId);
-      return true;
-    } catch (err) {
-      console.error(`Nodemailer delivery error for ${toEmail}:`, err.message);
-    }
+  // Cryptographically secure 6-digit OTP (100000 - 999999)
+  const otpNumber = crypto.randomInt(100000, 1000000);
+  const otpCode = otpNumber.toString();
+
+  // Store SHA-256 hash of OTP
+  const otpHash = crypto.createHash('sha256').update(otpCode).digest('hex');
+
+  otpStore.set(cleanEmail, {
+    otpHash,
+    createdAt: Date.now(),
+    expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
+    attempts: 0,
+    lastSentAt: Date.now(),
+    name: name || '',
+    type
+  });
+
+  try {
+    await emailService.sendVerificationOtp({
+      toEmail: cleanEmail,
+      name,
+      otpCode,
+      type
+    });
+
+    res.json({ message: `Verification code sent to ${cleanEmail}` });
+  } catch (err) {
+    console.error(`Error sending OTP email to ${cleanEmail}:`, err.message);
+    res.status(500).json({ error: "We couldn't send the verification code. Please try again later." });
+  }
+});
+
+// 2. AUTH: Verify Email OTP and Complete Registration
+app.post('/api/auth/verify-otp', (req, res) => {
+  const { email, otpCode, type = 'signup', name, password } = req.body;
+  if (!email || !otpCode) {
+    return res.status(400).json({ error: 'Email and 6-digit verification code are required.' });
   }
 
-  return false;
-}
+  const cleanEmail = email.trim().toLowerCase();
+  const storedOtp = otpStore.get(cleanEmail);
 
-// 1. AUTH: Password Login Direct
+  if (!storedOtp) {
+    return res.status(400).json({ error: 'Verification code expired or invalid. Please request a new code.' });
+  }
+
+  if (Date.now() > storedOtp.expiresAt) {
+    otpStore.delete(cleanEmail);
+    return res.status(400).json({ error: 'Verification code has expired. Please request a new code.' });
+  }
+
+  if (storedOtp.attempts >= 5) {
+    otpStore.delete(cleanEmail);
+    return res.status(400).json({ error: 'Too many failed attempts. This verification code is no longer valid. Please request a new code.' });
+  }
+
+  const submittedHash = crypto.createHash('sha256').update(otpCode.toString().trim()).digest('hex');
+  const storedBuffer = Buffer.from(storedOtp.otpHash, 'hex');
+  const submittedBuffer = Buffer.from(submittedHash, 'hex');
+
+  let isMatch = false;
+  if (storedBuffer.length === submittedBuffer.length) {
+    isMatch = crypto.timingSafeEqual(storedBuffer, submittedBuffer);
+  }
+
+  if (!isMatch) {
+    storedOtp.attempts += 1;
+    const remaining = 5 - storedOtp.attempts;
+
+    if (storedOtp.attempts >= 5) {
+      otpStore.delete(cleanEmail);
+      return res.status(400).json({ error: 'Maximum verification attempts exceeded. Code invalidated. Please request a new code.' });
+    }
+
+    return res.status(400).json({ error: `Incorrect verification code. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.` });
+  }
+
+  // Single-use: delete OTP from store
+  otpStore.delete(cleanEmail);
+
+  const db = readData();
+
+  if (type === 'signup') {
+    if (!name || !password) {
+      return res.status(400).json({ error: 'Name and password are required to complete registration.' });
+    }
+
+    const existingUser = db.users.find(u => u.email.toLowerCase() === cleanEmail);
+    if (existingUser) {
+      return res.status(400).json({ error: 'An account with this email already exists.' });
+    }
+
+    const systemRole = cleanEmail === 'malviyariyansh11@gmail.com' ? 'developer' : 'member';
+    const newUser = {
+      id: `usr_${Date.now()}`,
+      name: name.trim(),
+      email: cleanEmail,
+      password: password,
+      role: systemRole,
+      defaultRole: systemRole,
+      isVerified: true,
+      isBlocked: false,
+      createdAt: new Date().toISOString()
+    };
+
+    db.users.push(newUser);
+    writeData(db);
+
+    const userTeams = db.teams.filter(t => t.members.some(m => m.email.toLowerCase() === cleanEmail)).map(t => enrichTeam(db, t));
+
+    return res.status(201).json({
+      message: 'Account registered successfully!',
+      user: { id: newUser.id, name: newUser.name, email: newUser.email, role: systemRole, defaultRole: systemRole, isBlocked: false, avatarUrl: '' },
+      userTeams
+    });
+  }
+
+  res.json({ message: 'Verification successful.' });
+});
+
+// 3. AUTH: Password Login Direct
 app.post('/api/auth/login', (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
@@ -386,45 +449,6 @@ app.post('/api/auth/login', (req, res) => {
       jobTitle: user.jobTitle || '',
       avatarUrl: user.avatarUrl || ''
     },
-    userTeams
-  });
-});
-
-// 2. AUTH: Direct Sign Up (Default role: 'member', Developer role for malviyariyansh11@gmail.com)
-app.post('/api/auth/signup', (req, res) => {
-  const { name, email, password } = req.body;
-  if (!name || !email || !password) {
-    return res.status(400).json({ error: 'Name, email, and password are required.' });
-  }
-
-  const cleanEmail = email.trim().toLowerCase();
-  const db = readData();
-
-  const existingUser = db.users.find(u => u.email.toLowerCase() === cleanEmail);
-  if (existingUser) {
-    return res.status(400).json({ error: 'An account with this email already exists. Please sign in.' });
-  }
-
-  const systemRole = cleanEmail === 'malviyariyansh11@gmail.com' ? 'developer' : 'member';
-  const newUser = {
-    id: `usr_${Date.now()}`,
-    name: name.trim(),
-    email: cleanEmail,
-    password: password,
-    role: systemRole,
-    defaultRole: systemRole,
-    isBlocked: false,
-    createdAt: new Date().toISOString()
-  };
-
-  db.users.push(newUser);
-  writeData(db);
-
-  const userTeams = db.teams.filter(t => t.members.some(m => m.email.toLowerCase() === cleanEmail)).map(t => enrichTeam(db, t));
-
-  res.status(201).json({
-    message: 'Account registered successfully!',
-    user: { id: newUser.id, name: newUser.name, email: newUser.email, role: systemRole, defaultRole: systemRole, isBlocked: false, avatarUrl: '' },
     userTeams
   });
 });

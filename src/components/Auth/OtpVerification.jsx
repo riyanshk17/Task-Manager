@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mail, CheckCircle2, AlertCircle, ArrowLeft, RefreshCw, Lock, ShieldCheck } from 'lucide-react';
+import { Mail, CheckCircle2, AlertCircle, ArrowLeft, RefreshCw, Lock, ShieldCheck, KeyRound } from 'lucide-react';
 
 export const OtpVerification = ({
   email,
@@ -39,7 +39,6 @@ export const OtpVerification = ({
   }, [countdown]);
 
   const handleDigitChange = (index, value) => {
-    // Only numeric characters allowed
     const cleanVal = value.replace(/[^0-9]/g, '');
     if (!cleanVal) {
       const newDigits = [...digits];
@@ -49,10 +48,8 @@ export const OtpVerification = ({
     }
 
     const newDigits = [...digits];
-    // Take the last entered character if multiple typed
     newDigits[index] = cleanVal.slice(-1);
     setDigits(newDigits);
-
     setErrorMessage('');
 
     // Auto-advance to next input field
@@ -64,7 +61,6 @@ export const OtpVerification = ({
   const handleKeyDown = (index, e) => {
     if (e.key === 'Backspace') {
       if (!digits[index] && index > 0) {
-        // Move focus to previous input on backspace if current box is empty
         inputRefs.current[index - 1]?.focus();
       }
     } else if (e.key === 'ArrowLeft' && index > 0) {
@@ -87,7 +83,6 @@ export const OtpVerification = ({
       setDigits(newDigits);
       setErrorMessage('');
 
-      // Focus last filled digit or final input
       const nextIndex = Math.min(cleanNumbers.length, 5);
       inputRefs.current[nextIndex]?.focus();
     }
@@ -134,7 +129,7 @@ export const OtpVerification = ({
       
       setTimeout(() => {
         onVerifySuccess(data.user, data.userTeams || []);
-      }, 500);
+      }, 400);
     } catch (err) {
       setLoading(false);
       const netErr = 'Unable to connect to server. Please ensure backend is running.';
@@ -167,7 +162,7 @@ export const OtpVerification = ({
       }
 
       setSuccessMessage('A new 6-digit verification code has been sent to your email.');
-      setCountdown(60); // Reset 60s timer
+      setCountdown(60);
       setDigits(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
 
@@ -180,38 +175,67 @@ export const OtpVerification = ({
 
   return (
     <div className="otp-verification-container">
-      <div className="auth-header">
-        <div className="brand-icon" style={{ margin: '0 auto 1rem auto', width: 48, height: 48, background: 'rgba(99, 102, 241, 0.15)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <ShieldCheck size={26} className="text-indigo-400" />
+      <div className="auth-header" style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+        <div 
+          className="brand-icon" 
+          style={{ 
+            margin: '0 auto 0.75rem auto', 
+            width: 54, 
+            height: 54, 
+            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2))', 
+            borderRadius: '16px', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            border: '1px solid rgba(99, 102, 241, 0.3)',
+            boxShadow: '0 0 20px rgba(99, 102, 241, 0.15)'
+          }}
+        >
+          <ShieldCheck size={28} style={{ color: '#818cf8' }} />
         </div>
-        <h2>Verify Your Email</h2>
-        <p className="auth-subtitle" style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-          We've sent a single-use 6-digit security code to:
+        <h2 style={{ fontSize: '1.35rem', fontWeight: 700, margin: 0 }}>Security Verification</h2>
+        <p className="auth-subtitle" style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
+          Enter the 6-digit verification code sent to:
         </p>
-        <div className="email-chip" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(255, 255, 255, 0.06)', padding: '4px 12px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 600, marginTop: '0.5rem', color: 'var(--text-main)', border: '1px solid var(--border-subtle)' }}>
-          <Mail size={14} className="text-indigo-400" />
+        <div 
+          className="email-chip" 
+          style={{ 
+            display: 'inline-flex', 
+            alignItems: 'center', 
+            gap: '6px', 
+            background: 'rgba(99, 102, 241, 0.1)', 
+            padding: '6px 14px', 
+            borderRadius: '20px', 
+            fontSize: '0.85rem', 
+            fontWeight: 600, 
+            marginTop: '0.5rem', 
+            color: '#a5b4fc', 
+            border: '1px solid rgba(99, 102, 241, 0.25)' 
+          }}
+        >
+          <Mail size={14} style={{ color: '#818cf8' }} />
           <span>{email}</span>
         </div>
       </div>
 
       {errorMessage && (
-        <div className="otp-alert otp-alert-error" role="alert" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#fca5a5', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
+        <div className="otp-alert otp-alert-error" role="alert" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '10px', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#fca5a5', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
           <AlertCircle size={16} style={{ flexShrink: 0 }} />
           <span>{errorMessage}</span>
         </div>
       )}
 
       {successMessage && (
-        <div className="otp-alert otp-alert-success" role="status" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '8px', background: 'rgba(34, 197, 94, 0.12)', border: '1px solid rgba(34, 197, 94, 0.3)', color: '#86efac', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
+        <div className="otp-alert otp-alert-success" role="status" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '10px', background: 'rgba(34, 197, 94, 0.12)', border: '1px solid rgba(34, 197, 94, 0.3)', color: '#86efac', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
           <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
           <span>{successMessage}</span>
         </div>
       )}
 
       <form onSubmit={handleVerify}>
-        <div className="otp-inputs-wrapper" style={{ margin: '1.5rem 0' }}>
-          <label style={{ display: 'block', textAlign: 'center', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Enter 6-Digit Code
+        <div className="otp-inputs-wrapper" style={{ margin: '1.25rem 0' }}>
+          <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <KeyRound size={13} style={{ color: '#818cf8' }} /> 6-Digit Security Code
           </label>
           <div className="otp-digit-group" style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
             {digits.map((digit, idx) => (
@@ -230,17 +254,17 @@ export const OtpVerification = ({
                 className="otp-digit-box"
                 style={{
                   width: '46px',
-                  height: '54px',
+                  height: '56px',
                   fontSize: '1.5rem',
                   fontWeight: '700',
                   textAlign: 'center',
-                  borderRadius: '10px',
-                  border: digit ? '2px solid var(--primary)' : '1px solid var(--border-subtle)',
-                  background: digit ? 'rgba(99, 102, 241, 0.1)' : 'var(--bg-input)',
+                  borderRadius: '12px',
+                  border: digit ? '2px solid #6366f1' : '1px solid var(--border-subtle)',
+                  background: digit ? 'rgba(99, 102, 241, 0.15)' : 'var(--bg-input)',
                   color: 'var(--text-main)',
                   outline: 'none',
-                  transition: 'all 0.2s ease',
-                  boxShadow: digit ? '0 0 12px rgba(99, 102, 241, 0.25)' : 'none'
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  boxShadow: digit ? '0 0 16px rgba(99, 102, 241, 0.3)' : 'none'
                 }}
               />
             ))}
@@ -250,7 +274,7 @@ export const OtpVerification = ({
         <button
           type="submit"
           className="btn btn-primary"
-          style={{ width: '100%', padding: '0.75rem', fontSize: '0.95rem', fontWeight: 600 }}
+          style={{ width: '100%', padding: '0.85rem', fontSize: '0.95rem', fontWeight: 600, marginTop: '0.5rem' }}
           disabled={loading || digits.join('').length !== 6}
         >
           {loading ? (
@@ -280,7 +304,7 @@ export const OtpVerification = ({
           style={{
             background: 'none',
             border: 'none',
-            color: countdown > 0 ? 'var(--text-muted)' : 'var(--primary)',
+            color: countdown > 0 ? 'var(--text-muted)' : '#818cf8',
             cursor: countdown > 0 ? 'not-allowed' : 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -296,3 +320,4 @@ export const OtpVerification = ({
     </div>
   );
 };
+

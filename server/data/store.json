@@ -23,6 +23,28 @@
       "isBlocked": false,
       "createdAt": "2026-09-12T09:55:37.944Z",
       "updatedAt": "2026-09-12T10:04:09.902Z"
+    },
+    {
+      "id": "usr_1789213951553",
+      "name": "fdsgf",
+      "email": "vetakas234@94an.com",
+      "password": "@Hello1234",
+      "role": "member",
+      "defaultRole": "member",
+      "isVerified": true,
+      "isBlocked": false,
+      "createdAt": "2026-09-12T11:52:31.553Z"
+    },
+    {
+      "id": "usr_1789214553634",
+      "name": "ayushhh",
+      "email": "gikeyic780@94an.com",
+      "password": "@Hello1234",
+      "role": "member",
+      "defaultRole": "member",
+      "isVerified": true,
+      "isBlocked": false,
+      "createdAt": "2026-09-12T12:02:33.634Z"
     }
   ],
   "teams": [
