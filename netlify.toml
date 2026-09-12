@@ -1,0 +1,9 @@
+[[redirects]]
+  from = "/api/*"
+  to = "https://task-manager-backend-ygz7.onrender.com/api/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/uploads/*"
+  to = "https://task-manager-backend-ygz7.onrender.com/uploads/:splat"
+  status = 200
