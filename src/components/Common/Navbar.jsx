@@ -233,13 +233,12 @@ export const Navbar = ({
         </div>
 
         {/* Mobile Quick Header Actions & Hamburger Menu Button */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div className="mobile-header-actions" style={{ alignItems: 'center', gap: '0.5rem' }}>
           {activeTeam && onOpenChat && (
             <button 
               onClick={onOpenChat}
               className={`nav-chat-btn mobile-menu-btn ${unreadTeamCount > 0 ? 'has-unread' : ''}`}
               title="Team Chat"
-              style={{ display: 'flex' }}
             >
               <MessageSquare size={18} />
               {unreadTeamCount > 0 && (
@@ -253,7 +252,6 @@ export const Navbar = ({
           <button 
             onClick={onToggleTheme} 
             className="theme-toggle-btn mobile-menu-btn"
-            style={{ display: 'flex' }}
             title="Toggle Theme"
           >
             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}

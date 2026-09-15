@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { Layers, Mail, Lock, User, ArrowRight, Sun, Moon } from 'lucide-react';
+import { Layers, Mail, Lock, User, ArrowRight, Sun, Moon, KeyRound } from 'lucide-react';
 import { OtpVerification } from './OtpVerification';
+import { ForgotPasswordModal } from './ForgotPasswordModal';
 
 export const AuthModal = ({ onLoginSuccess, showToast, theme, onToggleTheme }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [showOtpScreen, setShowOtpScreen] = useState(false);
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
   
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -169,7 +171,19 @@ export const AuthModal = ({ onLoginSuccess, showToast, theme, onToggleTheme }) =
               </div>
 
               <div className="form-group">
-                <label className="form-label">Password</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                  <label className="form-label" style={{ marginBottom: 0 }}>Password</label>
+                  {isLogin && (
+                    <button 
+                      type="button" 
+                      onClick={() => setIsForgotPasswordOpen(true)}
+                      style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      <KeyRound size={13} />
+                      <span>Forgot Password?</span>
+                    </button>
+                  )}
+                </div>
                 <div style={{ position: 'relative' }}>
                   <Lock size={16} className="search-icon" />
                   <input 
@@ -199,6 +213,13 @@ export const AuthModal = ({ onLoginSuccess, showToast, theme, onToggleTheme }) =
             </form>
           </>
         )}
+
+        <ForgotPasswordModal
+          isOpen={isForgotPasswordOpen}
+          onClose={() => setIsForgotPasswordOpen(false)}
+          onLoginSuccess={onLoginSuccess}
+          showToast={showToast}
+        />
       </div>
     </div>
   );

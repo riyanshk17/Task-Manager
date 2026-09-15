@@ -187,6 +187,12 @@ export const TaskModal = ({ isOpen, onClose, teamMembers, taskToEdit, onSaveTask
     if (showToast) showToast('Added task step!', 'success');
   };
 
+  const handleDeleteSopStep = (stepToDelete) => {
+    setAvailableSopSteps(prev => prev.filter(s => s !== stepToDelete));
+    setSelectedSopSteps(prev => prev.filter(s => s !== stepToDelete));
+    if (showToast) showToast('Subtask step removed.', 'info');
+  };
+
   const handleToggleSopStep = (step) => {
     if (selectedSopSteps.includes(step)) {
       setSelectedSopSteps(prev => prev.filter(s => s !== step));
@@ -493,30 +499,63 @@ export const TaskModal = ({ isOpen, onClose, teamMembers, taskToEdit, onSaveTask
                   {availableSopSteps.map((step, idx) => {
                     const isChecked = selectedSopSteps.includes(step);
                     return (
-                      <label 
+                      <div 
                         key={idx}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '10px',
+                          justifyContent: 'space-between',
+                          gap: '8px',
                           padding: '8px 12px',
                           borderRadius: '8px',
                           background: isChecked ? 'rgba(16, 185, 129, 0.08)' : 'var(--bg-input)',
                           border: isChecked ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid var(--border-subtle)',
-                          color: 'var(--text-main)',
-                          fontSize: '0.85rem',
-                          cursor: 'pointer',
                           transition: 'all 0.15s ease'
                         }}
                       >
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => handleToggleSopStep(step)}
-                          style={{ width: '16px', height: '16px', accentColor: 'var(--accent-emerald)', cursor: 'pointer' }}
-                        />
-                        <span style={{ fontWeight: isChecked ? 600 : 400 }}>{step}</span>
-                      </label>
+                        <label 
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            color: 'var(--text-main)',
+                            fontSize: '0.85rem',
+                            cursor: 'pointer',
+                            flex: 1
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => handleToggleSopStep(step)}
+                            style={{ width: '16px', height: '16px', accentColor: 'var(--accent-emerald)', cursor: 'pointer' }}
+                          />
+                          <span style={{ fontWeight: isChecked ? 600 : 400 }}>{step}</span>
+                        </label>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteSopStep(step);
+                          }}
+                          style={{
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            border: '1px solid rgba(239, 68, 68, 0.25)',
+                            color: '#ef4444',
+                            cursor: 'pointer',
+                            padding: '4px 6px',
+                            borderRadius: '6px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'var(--transition-fast)'
+                          }}
+                          title="Delete this subtask step"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     );
                   })}
                 </div>

@@ -202,8 +202,8 @@ export const SettingsModal = ({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="glass-panel modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: '750px', width: '92vw', padding: 0, overflow: 'hidden' }}>
+    <div className="modal-overlay centered-modal-overlay" onClick={onClose}>
+      <div className="glass-panel modal-container settings-modal-responsive" onClick={e => e.stopPropagation()}>
         
         {/* Header */}
         <div className="modal-header" style={{ padding: '1.25rem 1.5rem', background: 'var(--bg-card)', borderBottom: '1px solid var(--border-subtle)' }}>
@@ -237,14 +237,14 @@ export const SettingsModal = ({
         </div>
 
         {/* Modal Layout: Sidebar Tabs + Content */}
-        <div style={{ display: 'flex', minHeight: '440px', background: 'var(--bg-dark)' }}>
+        <div className="settings-layout-wrapper">
           
           {/* Sidebar Tabs */}
-          <div style={{ width: '210px', background: 'var(--bg-card)', borderRight: '1px solid var(--border-subtle)', padding: '1rem 0.75rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div className="settings-sidebar-tabs">
+            <div className="settings-tab-button-group">
               <button 
                 className={`auth-tab ${activeTab === 'profile' ? 'active' : ''}`}
-                style={{ width: '100%', justifyContent: 'flex-start', padding: '10px 14px', fontSize: '0.85rem', gap: '10px', borderRadius: '10px' }}
+                style={{ justifyContent: 'flex-start', padding: '10px 14px', fontSize: '0.85rem', gap: '10px', borderRadius: '10px' }}
                 onClick={() => setActiveTab('profile')}
               >
                 <User size={16} />
@@ -253,7 +253,7 @@ export const SettingsModal = ({
 
               <button 
                 className={`auth-tab ${activeTab === 'security' ? 'active' : ''}`}
-                style={{ width: '100%', justifyContent: 'flex-start', padding: '10px 14px', fontSize: '0.85rem', gap: '10px', borderRadius: '10px' }}
+                style={{ justifyContent: 'flex-start', padding: '10px 14px', fontSize: '0.85rem', gap: '10px', borderRadius: '10px' }}
                 onClick={() => setActiveTab('security')}
               >
                 <Lock size={16} />
@@ -262,7 +262,7 @@ export const SettingsModal = ({
 
               <button 
                 className={`auth-tab ${activeTab === 'preferences' ? 'active' : ''}`}
-                style={{ width: '100%', justifyContent: 'flex-start', padding: '10px 14px', fontSize: '0.85rem', gap: '10px', borderRadius: '10px' }}
+                style={{ justifyContent: 'flex-start', padding: '10px 14px', fontSize: '0.85rem', gap: '10px', borderRadius: '10px' }}
                 onClick={() => setActiveTab('preferences')}
               >
                 <Settings size={16} />
@@ -271,7 +271,7 @@ export const SettingsModal = ({
 
               <button 
                 className={`auth-tab ${activeTab === 'about' ? 'active' : ''}`}
-                style={{ width: '100%', justifyContent: 'flex-start', padding: '10px 14px', fontSize: '0.85rem', gap: '10px', borderRadius: '10px' }}
+                style={{ justifyContent: 'flex-start', padding: '10px 14px', fontSize: '0.85rem', gap: '10px', borderRadius: '10px' }}
                 onClick={() => setActiveTab('about')}
               >
                 <Info size={16} />
@@ -280,7 +280,7 @@ export const SettingsModal = ({
             </div>
 
             {/* Logout Action */}
-            <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '0.75rem' }}>
+            <div className="settings-logout-box" style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '0.75rem' }}>
               <button 
                 className="btn btn-secondary" 
                 style={{ width: '100%', justifyContent: 'flex-start', padding: '9px 12px', fontSize: '0.85rem', gap: '8px', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.08)' }}
@@ -296,7 +296,7 @@ export const SettingsModal = ({
           </div>
 
           {/* Main Tab Content */}
-          <div style={{ flex: 1, padding: '1.5rem', overflowY: 'auto' }}>
+          <div className="settings-tab-content">
             
             {/* 1. PROFILE TAB */}
             {activeTab === 'profile' && (

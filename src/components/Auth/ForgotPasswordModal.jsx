@@ -101,35 +101,31 @@ export const ForgotPasswordModal = ({ isOpen, onClose, onLoginSuccess, showToast
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="glass-panel modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: '440px', width: '92vw', padding: '1.75rem' }}>
+    <div className="modal-overlay centered-modal-overlay" onClick={onClose}>
+      <div className="glass-panel modal-container reset-password-modal" onClick={e => e.stopPropagation()} style={{ textAlign: 'center' }}>
         
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ background: 'rgba(99, 102, 241, 0.15)', padding: '8px', borderRadius: '10px' }}>
-              <KeyRound size={20} className="text-indigo-400" />
-            </div>
-            <div>
-              <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-main)' }}>Reset Password</h3>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Email Verification Recovery System
-              </div>
-            </div>
-          </div>
-
-          <button className="close-btn" onClick={onClose}>
+        <div style={{ position: 'relative', marginBottom: '1.25rem' }}>
+          <button className="close-btn" onClick={onClose} style={{ position: 'absolute', top: 0, right: 0 }}>
             <X size={18} />
           </button>
+          
+          <div style={{ background: 'rgba(99, 102, 241, 0.15)', width: 48, height: 48, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.75rem auto', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
+            <KeyRound size={22} className="text-indigo-400" />
+          </div>
+          <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-main)', fontWeight: 800 }}>Reset Account Password</h3>
+          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+            Email Verification Security System
+          </div>
         </div>
 
         {step === 1 ? (
           <form onSubmit={handleSendResetOtp}>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.25rem', lineHeight: '1.45' }}>
-              Enter your registered account email address. We will send a 6-digit verification OTP code to reset your password securely.
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.25rem', lineHeight: '1.5' }}>
+              Enter your registered account email address. We will send a 6-digit security OTP code to reset your password.
             </p>
 
-            <div className="form-group">
-              <label className="form-label">Account Email</label>
+            <div className="form-group" style={{ textAlign: 'left' }}>
+              <label className="form-label">Account Email Address</label>
               <div style={{ position: 'relative' }}>
                 <Mail size={16} className="search-icon" />
                 <input 
@@ -169,7 +165,7 @@ export const ForgotPasswordModal = ({ isOpen, onClose, onLoginSuccess, showToast
               </button>
             </div>
 
-            <div className="form-group">
+            <div className="form-group" style={{ textAlign: 'left' }}>
               <label className="form-label">6-Digit Verification Code</label>
               <div style={{ position: 'relative' }}>
                 <ShieldCheck size={16} className="search-icon" />
@@ -186,7 +182,7 @@ export const ForgotPasswordModal = ({ isOpen, onClose, onLoginSuccess, showToast
               </div>
             </div>
 
-            <div className="form-group">
+            <div className="form-group" style={{ textAlign: 'left' }}>
               <label className="form-label">New Password</label>
               <div style={{ position: 'relative' }}>
                 <Lock size={16} className="search-icon" />
@@ -202,7 +198,7 @@ export const ForgotPasswordModal = ({ isOpen, onClose, onLoginSuccess, showToast
               </div>
             </div>
 
-            <div className="form-group">
+            <div className="form-group" style={{ textAlign: 'left' }}>
               <label className="form-label">Confirm New Password</label>
               <div style={{ position: 'relative' }}>
                 <Lock size={16} className="search-icon" />

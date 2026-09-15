@@ -79,7 +79,7 @@ export const AvatarCropModal = ({ isOpen, onClose, imageSrc, onCropComplete }) =
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose} style={{ zIndex: 11000 }}>
+    <div className="modal-overlay centered-modal-overlay" onClick={onClose} style={{ zIndex: 11000 }}>
       <div className="glass-panel modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: '420px', width: '92vw', padding: '1.5rem' }}>
         
         {/* Header */}

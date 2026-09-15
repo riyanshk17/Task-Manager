@@ -458,22 +458,6 @@ export const EmployeeDashboard = ({ user, activeTeam, onLeaveTeam, showToast, on
         <div className="action-bar" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <button 
             className="btn btn-secondary btn-sm"
-            style={{ position: 'relative' }}
-            onClick={() => {
-              markTeamChatAsRead();
-              setIsChatOpen(true);
-            }}
-            title="Open Team Communication Chat"
-          >
-            <MessageSquare size={14} className="text-indigo-400" />
-            <span>Team Chat</span>
-            {unreadTeamCount > 0 && (
-              <span className="chat-unread-badge">{unreadTeamCount > 99 ? '99+' : unreadTeamCount}</span>
-            )}
-          </button>
-
-          <button 
-            className="btn btn-secondary btn-sm"
             onClick={() => {
               fetchPermanentArchive();
               setIsArchiveOpen(true);
@@ -483,21 +467,6 @@ export const EmployeeDashboard = ({ user, activeTeam, onLeaveTeam, showToast, on
             <Archive size={14} className="text-indigo-400" />
             <span>Permanent Archive DB</span>
           </button>
-
-          {onLeaveTeam && activeTeam && (
-            <button
-              className="btn btn-secondary btn-sm"
-              onClick={() => {
-                if (window.confirm(`Are you sure you want to leave the team "${activeTeam.name}"?`)) {
-                  onLeaveTeam(activeTeam.id);
-                }
-              }}
-              style={{ color: '#fca5a5', borderColor: 'rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.1)' }}
-            >
-              <UserMinus size={14} />
-              <span>Leave Team</span>
-            </button>
-          )}
         </div>
       </div>
 

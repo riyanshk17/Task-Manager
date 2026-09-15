@@ -177,7 +177,7 @@ export const TeamChatModal = ({ isOpen, onClose, team, currentUser, currentRole,
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="glass-panel modal-container" onClick={e => e.stopPropagation()} style={{ width: '90vw', maxWidth: '750px', height: '80vh', display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden' }}>
+      <div className="glass-panel modal-container chat-modal-responsive" onClick={e => e.stopPropagation()}>
         
         {/* Chat Header */}
         <div className="modal-header" style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-card)' }}>

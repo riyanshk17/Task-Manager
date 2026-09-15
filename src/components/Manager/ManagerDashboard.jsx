@@ -432,24 +432,6 @@ export const ManagerDashboard = ({ user, activeTeam, onOpenTeamModal, onLeaveTea
           <button 
             className="btn btn-secondary" 
             onClick={() => {
-              markTeamChatAsRead();
-              setIsChatOpen(true);
-            }}
-            title="Open Team Communication Chat"
-            style={{ position: 'relative' }}
-          >
-            <MessageSquare size={16} className={unreadTeamCount > 0 ? "text-red-400" : "text-indigo-400"} />
-            <span>Team Chat</span>
-            {unreadTeamCount > 0 && (
-              <span className="chat-unread-badge" title={`${unreadTeamCount} unread Team Chat messages`}>
-                {unreadTeamCount > 99 ? '99+' : unreadTeamCount}
-              </span>
-            )}
-          </button>
-
-          <button 
-            className="btn btn-secondary" 
-            onClick={() => {
               fetchPermanentArchive();
               setIsArchiveOpen(true);
             }}
@@ -478,21 +460,6 @@ export const ManagerDashboard = ({ user, activeTeam, onOpenTeamModal, onLeaveTea
             <PlusCircle size={16} />
             <span>Assign Task (Full-Screen)</span>
           </button>
-
-          {onLeaveTeam && activeTeam && (
-            <button
-              className="btn btn-secondary"
-              onClick={() => {
-                if (window.confirm(`Are you sure you want to leave the team "${activeTeam.name}"?`)) {
-                  onLeaveTeam(activeTeam.id);
-                }
-              }}
-              style={{ color: '#fca5a5', borderColor: 'rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.1)' }}
-            >
-              <UserMinus size={16} />
-              <span>Leave</span>
-            </button>
-          )}
         </div>
       </div>
 
