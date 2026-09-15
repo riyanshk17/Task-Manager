@@ -22,6 +22,7 @@ export const ManagerDashboard = ({ user, activeTeam, onOpenTeamModal, onLeaveTea
   const [assigneeFilter, setAssigneeFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
   const [viewMode, setViewMode] = useState('list'); // Default to single-line list view for multiple tasks
+  const [mobileStatusTab, setMobileStatusTab] = useState('All');
 
   // Modal States
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
@@ -865,8 +866,26 @@ export const ManagerDashboard = ({ user, activeTeam, onOpenTeamModal, onLeaveTea
         </div>
       ) : (
         /* Kanban Board View */
-        <div className="kanban-board">
-          {['Pending', 'In Progress', 'Completed'].map((columnStatus) => {
+        <>
+          <div className="mobile-kanban-tabs">
+            {['All', 'Pending', 'In Progress', 'Completed'].map(tab => (
+              <button
+                key={tab}
+                className={`kanban-tab-btn ${mobileStatusTab === tab ? 'active' : ''}`}
+                onClick={() => setMobileStatusTab(tab)}
+              >
+                <span>{tab}</span>
+                <span style={{ fontSize: '0.7rem', padding: '1px 6px', borderRadius: '10px', background: 'rgba(255,255,255,0.15)' }}>
+                  {tab === 'All' ? filteredTasks.length : filteredTasks.filter(t => t.status === tab).length}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <div className="kanban-board">
+            {['Pending', 'In Progress', 'Completed']
+              .filter(status => mobileStatusTab === 'All' || mobileStatusTab === status)
+              .map((columnStatus) => {
             const colTasks = filteredTasks.filter(t => t.status === columnStatus);
             return (
               <div key={columnStatus} className="kanban-col">
@@ -1040,6 +1059,7 @@ export const ManagerDashboard = ({ user, activeTeam, onOpenTeamModal, onLeaveTea
             );
           })}
         </div>
+        </>
       )}
 
       {/* Team Chat Modal */}
