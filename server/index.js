@@ -3,7 +3,6 @@ import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
 import { emailService } from './services/emailService.js';
@@ -77,41 +76,7 @@ const saveToPermanentArchive = (actionType, task) => {
   }
 };
 
-// Nodemailer Transporter Setup
-let transporter;
-const initEmailTransporter = async () => {
-  const user = process.env.SMTP_USER || process.env.GMAIL_USER || process.env.EMAIL_USER;
-  const pass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASS || process.env.EMAIL_PASS;
 
-  if (user && pass) {
-    transporter = nodemailer.createTransport({
-      service: 'gmail',
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true, // SSL
-      auth: { user, pass }
-    });
-    console.log(`Nodemailer initialized with Gmail SSL SMTP for user: ${user}`);
-  } else {
-    // Ethereal test SMTP account as fallback
-    try {
-      const testAccount = await nodemailer.createTestAccount();
-      transporter = nodemailer.createTransport({
-        host: 'smtp.ethereal.email',
-        port: 587,
-        secure: false,
-        auth: {
-          user: testAccount.user,
-          pass: testAccount.pass
-        }
-      });
-      console.log(`Nodemailer test transporter ready (Ethereal: ${testAccount.user})`);
-    } catch (err) {
-      console.warn('Could not create Ethereal test email account:', err.message);
-    }
-  }
-};
-initEmailTransporter();
 
 // Temporary OTP Store in Memory
 const otpStore = new Map();
