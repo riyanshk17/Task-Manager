@@ -1,5 +1,4 @@
 import dotenv from 'dotenv';
-import nodemailer from 'nodemailer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -12,33 +11,18 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 dotenv.config();
 
 /**
- * Gmail SMTP Email Service using Nodemailer
+ * Transactional Email Service using Brevo HTTP API (HTTPS)
  */
 export class EmailService {
-  getTransporter() {
-    const user = process.env.EMAIL_USER || process.env.GMAIL_USER;
-    const pass = process.env.EMAIL_APP_PASSWORD || process.env.GMAIL_APP_PASS;
-
-    if (user && pass) {
-      return nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 465,
-        secure: true, // SSL
-        auth: { user, pass }
-      });
-    }
-
-    return null;
-  }
-
   async sendVerificationOtp({ toEmail, name, otpCode, type = 'signup' }) {
     const cleanRecipient = (toEmail || '').trim().toLowerCase();
     if (!cleanRecipient) {
       throw new Error('Recipient email address is required.');
     }
 
-    const user = process.env.EMAIL_USER || process.env.GMAIL_USER;
-    const transporter = this.getTransporter();
+    const apiKey = process.env.BREVO_API_KEY;
+    const senderEmail = process.env.BREVO_SENDER_EMAIL;
+    const senderName = process.env.BREVO_SENDER_NAME || 'Task Manager';
 
     const htmlContent = `
       <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0b0f19; color: #f8fafc; padding: 32px 24px; border-radius: 12px; max-width: 520px; margin: 0 auto; border: 1px solid #1e293b;">
@@ -64,33 +48,53 @@ export class EmailService {
       </div>
     `;
 
-    if (transporter) {
+    if (apiKey && senderEmail) {
       try {
-        const fromHeader = `"Task Manager" <${user}>`;
-        const info = await transporter.sendMail({
-          from: fromHeader,
-          to: cleanRecipient,
-          subject: 'Verify your email address - TaskMaster Pro',
-          text: `Hello ${name || 'User'},\n\nYour 6-digit verification code is: ${otpCode}\n\nThis code expires in 10 minutes.\n\nTaskMaster Pro`,
-          html: htmlContent
+        const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: {
+            'accept': 'application/json',
+            'api-key': apiKey,
+            'content-type': 'application/json'
+          },
+          body: JSON.stringify({
+            sender: {
+              name: senderName,
+              email: senderEmail
+            },
+            to: [
+              {
+                email: cleanRecipient
+              }
+            ],
+            subject: 'Verify your email address - TaskMaster Pro',
+            htmlContent: htmlContent
+          })
         });
 
-        console.log(`[Gmail SMTP Mailer] ✅ Verification email sent to ${cleanRecipient}. Message ID: ${info.messageId}`);
-        return { success: true, provider: 'gmail-smtp', messageId: info.messageId };
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          console.error(`[Brevo HTTP API Delivery Error] Status ${response.status}:`, data);
+          throw new Error(data.message || `Brevo API returned error status ${response.status}`);
+        }
+
+        console.log(`[Brevo HTTP API Mailer] ✅ Verification email sent to ${cleanRecipient}. Message ID: ${data.messageId || 'sent'}`);
+        return { success: true, provider: 'brevo-http', messageId: data.messageId };
       } catch (err) {
-        console.error(`[Gmail SMTP Delivery Error] Failed sending to ${cleanRecipient}:`, err.message);
+        console.error(`[Brevo HTTP API Delivery Error] Failed sending to ${cleanRecipient}:`, err.message);
         throw new Error("We couldn't send the verification code. Please try again later.");
       }
     }
 
-    // Development Console fallback if EMAIL_USER/EMAIL_APP_PASSWORD are not set in local environment yet
+    // Development Console fallback if BREVO credentials are not set in local environment yet
     console.log('\n====================================================');
     console.log(`📩 [DEV FALLBACK MAILER] EMAIL OTP GENERATED`);
     console.log(`👤 RECIPIENT: ${name || 'User'} <${cleanRecipient}>`);
     console.log(`🔑 6-DIGIT OTP CODE: ${otpCode}`);
     console.log(`⏳ EXPIRES IN: 10 minutes`);
     console.log(`📌 PURPOSE: ${type.toUpperCase()}`);
-    console.log('⚠️ Set EMAIL_USER and EMAIL_APP_PASSWORD in .env for real Gmail delivery.');
+    console.log('⚠️ Set BREVO_API_KEY and BREVO_SENDER_EMAIL in .env for real Brevo delivery.');
     console.log('====================================================\n');
 
     return { success: true, provider: 'console-dev' };
@@ -98,5 +102,6 @@ export class EmailService {
 }
 
 export const emailService = new EmailService();
+
 
 
